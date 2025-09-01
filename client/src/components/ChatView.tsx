@@ -23,7 +23,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { trpc } from '@/utils/trpc';
-import type { ChatMessage, ChatSession, CreateChatMessageInput, CreateChatSessionInput } from '../../../server/src/schema';
+import type { ChatMessage, ChatSession, CreateChatSessionInput, SendAiMessageInput } from '../../../server/src/schema';
 
 interface ChatViewProps {
   sessions: ChatSession[];
@@ -141,44 +141,45 @@ export function ChatView({ sessions, messages, onSessionsChange, onMessagesChang
     setIsLoading(true);
     
     try {
-      // Create user message
-      const userMessageInput: CreateChatMessageInput = {
-        session_id: currentSessionId,
-        role: 'user',
-        content: inputMessage.trim(),
-        content_type: uploadedFile ? (uploadedFile.type.includes('image') ? 'image' : 'pdf') : 'text',
-        metadata: uploadedFile ? { fileName: uploadedFile.name, fileSize: uploadedFile.size } : null
+      let imageFileBase64: string | null = null;
+      let pdfFileContent: string | null = null;
+
+      // Process uploaded file
+      if (uploadedFile) {
+        if (uploadedFile.type.includes('image')) {
+          // Read image as base64
+          const reader = new FileReader();
+          imageFileBase64 = await new Promise((resolve) => {
+            reader.onload = () => {
+              const result = reader.result as string;
+              // Remove data URL prefix to get just base64
+              const base64 = result.split(',')[1];
+              resolve(base64);
+            };
+            reader.readAsDataURL(uploadedFile);
+          });
+        } else if (uploadedFile.type.includes('pdf')) {
+          // For now, use a placeholder for PDF content extraction
+          // In a real implementation, you would use pdfjs-dist here
+          pdfFileContent = `Extracted PDF content from ${uploadedFile.name}. This would contain the actual text content of the PDF file.`;
+        }
+      }
+
+      // Call the new sendAiMessage mutation
+      const sendAiMessageInput: SendAiMessageInput = {
+        sessionId: currentSessionId,
+        messageContent: inputMessage.trim(),
+        genZMode,
+        copyCodeOnlyMode: copyCodeOnly,
+        targetLanguage,
+        imageFileBase64,
+        pdfFileContent
       };
 
-      const userMessage = await trpc.createChatMessage.mutate(userMessageInput);
+      await trpc.sendAiMessage.mutate(sendAiMessageInput);
       
-      // Update messages with user message
-      const updatedMessages = [...messages, userMessage];
-      onMessagesChange(updatedMessages);
-
-      // TODO: Here we would send to AI and get response
-      // For now, simulate AI response
-      setTimeout(async () => {
-        try {
-          const aiResponse = genZMode 
-            ? "yo that's pretty cool ngl 🔥 let me think about that real quick..."
-            : "I understand your message. Let me provide you with a comprehensive response.";
-
-          const aiMessageInput: CreateChatMessageInput = {
-            session_id: currentSessionId,
-            role: 'assistant',
-            content: aiResponse,
-            content_type: 'text'
-          };
-
-          const aiMessage = await trpc.createChatMessage.mutate(aiMessageInput);
-          onMessagesChange([...updatedMessages, aiMessage]);
-        } catch (error) {
-          console.error('Failed to create AI message:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      }, 1000);
+      // Reload messages to get both user and AI messages
+      await loadMessages(currentSessionId);
 
       // Clear input
       setInputMessage('');
@@ -189,6 +190,7 @@ export function ChatView({ sessions, messages, onSessionsChange, onMessagesChang
       
     } catch (error) {
       console.error('Failed to send message:', error);
+    } finally {
       setIsLoading(false);
     }
   };

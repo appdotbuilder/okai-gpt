@@ -16,7 +16,8 @@ import {
   getVideoStatusInputSchema,
   updateGeneratedVideoInputSchema,
   createQuizInputSchema,
-  createWebSearchInputSchema
+  createWebSearchInputSchema,
+  sendAiMessageInputSchema
 } from './schema';
 
 // Import handlers
@@ -35,6 +36,7 @@ import { updateVideoStatus } from './handlers/update_video_status';
 import { generateQuiz } from './handlers/generate_quiz';
 import { searchWeb } from './handlers/search_web';
 import { getRecentActivities } from './handlers/get_recent_activities';
+import { sendAiMessage } from './handlers/send_ai_message';
 import { z } from 'zod';
 
 const t = initTRPC.create({
@@ -77,6 +79,10 @@ const appRouter = router({
   getChatMessages: publicProcedure
     .input(getChatMessagesInputSchema)
     .query(({ input }) => getChatMessages(input)),
+
+  sendAiMessage: publicProcedure
+    .input(sendAiMessageInputSchema)
+    .mutation(({ input }) => sendAiMessage(input)),
 
   // Document Scanner
   analyzeDocument: publicProcedure

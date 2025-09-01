@@ -173,3 +173,15 @@ export const getVideoStatusInputSchema = z.object({
 });
 
 export type GetVideoStatusInput = z.infer<typeof getVideoStatusInputSchema>;
+
+export const sendAiMessageInputSchema = z.object({
+  sessionId: z.string(),
+  messageContent: z.string(),
+  genZMode: z.boolean().optional(),
+  copyCodeOnlyMode: z.boolean().optional(),
+  targetLanguage: z.string().nullable().optional(),
+  imageFileBase64: z.string().nullable().optional(),
+  pdfFileContent: z.string().nullable().optional()
+});
+
+export type SendAiMessageInput = z.infer<typeof sendAiMessageInputSchema>;
