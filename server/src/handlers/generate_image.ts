@@ -1,14 +1,25 @@
+import { db } from '../db';
+import { generatedImagesTable } from '../db/schema';
 import { type CreateGeneratedImageInput, type GeneratedImage } from '../schema';
 
-export async function generateImage(input: CreateGeneratedImageInput): Promise<GeneratedImage> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is generating an image from text prompt using AI
-    // and persisting the result in the database. Should integrate with text-to-image
-    // AI service and handle image storage/URL generation.
-    return Promise.resolve({
-        id: Date.now(), // Placeholder ID
+export const generateImage = async (input: CreateGeneratedImageInput): Promise<GeneratedImage> => {
+  try {
+    // For now, we'll simulate image generation with a placeholder URL
+    // In a real implementation, this would integrate with an AI image generation service
+    const mockImageUrl = `https://generated-images.example.com/${Date.now()}-${encodeURIComponent(input.prompt.slice(0, 50))}.png`;
+
+    // Insert generated image record into database
+    const result = await db.insert(generatedImagesTable)
+      .values({
         prompt: input.prompt,
-        image_url: 'https://placeholder-image-url.com/generated.png',
-        created_at: new Date()
-    } as GeneratedImage);
-}
+        image_url: mockImageUrl
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Image generation failed:', error);
+    throw error;
+  }
+};

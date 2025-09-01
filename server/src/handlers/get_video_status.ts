@@ -1,17 +1,34 @@
+import { db } from '../db';
+import { generatedVideosTable } from '../db/schema';
 import { type GetVideoStatusInput, type GeneratedVideo } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function getVideoStatus(input: GetVideoStatusInput): Promise<GeneratedVideo> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching the current status of a video generation
-    // request. Used by frontend to poll for completion status and progress updates.
-    return Promise.resolve({
-        id: input.id,
-        prompt: 'Sample prompt',
-        initial_image_url: null,
-        video_url: null,
-        status: 'processing',
-        progress_message: 'Generating video frames...',
-        created_at: new Date(),
-        completed_at: null
-    } as GeneratedVideo);
-}
+export const getVideoStatus = async (input: GetVideoStatusInput): Promise<GeneratedVideo> => {
+  try {
+    // Query the video by ID
+    const results = await db.select()
+      .from(generatedVideosTable)
+      .where(eq(generatedVideosTable.id, input.id))
+      .execute();
+
+    if (results.length === 0) {
+      throw new Error(`Video with id ${input.id} not found`);
+    }
+
+    // Return the video status data
+    const video = results[0];
+    return {
+      id: video.id,
+      prompt: video.prompt,
+      initial_image_url: video.initial_image_url,
+      video_url: video.video_url,
+      status: video.status,
+      progress_message: video.progress_message,
+      created_at: video.created_at,
+      completed_at: video.completed_at
+    };
+  } catch (error) {
+    console.error('Get video status failed:', error);
+    throw error;
+  }
+};

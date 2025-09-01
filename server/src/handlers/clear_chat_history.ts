@@ -1,6 +1,15 @@
+import { db } from '../db';
+import { chatSessionsTable, chatMessagesTable } from '../db/schema';
+
 export async function clearChatHistory(): Promise<void> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is clearing all chat sessions and messages
-    // from the database. Used by the Settings view to reset all chat data.
-    return Promise.resolve();
+  try {
+    // Delete all chat messages first (due to foreign key constraint)
+    await db.delete(chatMessagesTable).execute();
+    
+    // Then delete all chat sessions
+    await db.delete(chatSessionsTable).execute();
+  } catch (error) {
+    console.error('Failed to clear chat history:', error);
+    throw error;
+  }
 }
